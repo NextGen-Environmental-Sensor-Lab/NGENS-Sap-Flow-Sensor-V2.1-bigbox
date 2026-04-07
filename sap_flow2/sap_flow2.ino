@@ -124,20 +124,20 @@
 
 /* T is the period between measurement events. Ideally, this should evenly
  divide an hour because we set the alarm to the next multiple. If not, e.g. 7, 
- then there will be a short period after the hour with the remainder of 60mod7
+ then there will be a short period after the hour with the remainder of 60 mod 7
 */
 
-//#define T_MINS 30
-#define T_MINS 4
+#define T_MINS 30
+//#define T_MINS 4
 /// PREH is the measurement period before heat on
-//#define PREH_SECS 20
 #define PREH_SECS 20
+//#define PREH_SECS 20
 /// H is the period to apply heat
-//#define H_SECS 2
-#define H_SECS 10
+#define H_SECS 2
+//#define H_SECS 10
 /// POTSTH is the measurement period after heat
-//#define POSTH_SEC S 120
-#define POSTH_SECS 20
+#define POSTH_SEC S 120
+//#define POSTH_SECS 20
 // ......|______|----|_____________|...................... |____|----|_____________|
 //         PREH   H       POSTH
 //.......|............................T....................|....................
@@ -162,98 +162,43 @@ enum class HeatingState {
 #define TIMER_LED 9
 #define ERROR_LED 5
 #define SD_CS_PIN 23 // NEW FOR RP2040
-//
 // A battery voltage of 0.9V per cell is a commonly cited cutoff voltage for NiMH cells
 #define ENABLE_VOLTAGE_CUTOFF (0)
 #define VOLTAGE_CUTOFF (0.9 * 8)
 
 RTC_DS3231 rtc_ds3231;
 Adafruit_ADS1115 ads1, ads2;
-// NEW FOR RP2040
 SdFat SD;
-//
-bool ledToggle = true;
 float tempC1, tempC2, tempC3, tempC4, tempC5, tempC6, tempC7, tempC8;
 
 void setup() {
-  // From Claude...
-  // FIRST THING - hold power on if button was pressed
-  // Must happen before any delays or slow initialization
+  // LEDs first - red on immediately so user knows system is alive
+  initLEDs();
+  digitalWrite(POWER_LED, HIGH);
+  digitalWrite(RED_LED, HIGH);
+
   Serial.begin(115200);
-  delay(5000);
+  delay(800);
   Serial.println(__FILE__);
 
   if (!rtc_ds3231.begin()) {
     Serial.println("Couldn't find RTC!");
-    writeTextSD("Couldn't find RTC!");
-    errorBlinkLoop(10000);
-  } else {
-    Serial.println("RTC set");
-    writeTextSD("\n");
-    writeTextSD(" RTC set");
+    while (1) {
+      digitalWrite(ERROR_LED, !digitalRead(ERROR_LED));
+      delay(200);
+    }
   }
+  Serial.println("RTC found.");
+
   rtc_ds3231.disable32K();
   rtc_ds3231.writeSqwPinMode(DS3231_OFF);
+
   fireAlarm2();
-  //
-
-  // Serial.begin(115200);  // Baud rate ignored on this platform
-
-  // Make sure to drive the heater pin low immediately.
-  pinMode(HEATER_PIN, OUTPUT);
-  digitalWrite(HEATER_PIN, LOW);
-
-  // Turn on all LEDs for 1 second on power up
-  pinMode(RED_LED, OUTPUT);
-  pinMode(YELLOW_LED, OUTPUT);
-  pinMode(GREEN_LED, OUTPUT);
-  pinMode(POWER_LED, OUTPUT);
-  pinMode(TIMER_LED, OUTPUT);
-  pinMode(ERROR_LED, OUTPUT);
-
-  digitalWrite(RED_LED, 1);
-  digitalWrite(YELLOW_LED, 1);
-  digitalWrite(GREEN_LED, 1);
-  digitalWrite(POWER_LED, 1);
-  digitalWrite(TIMER_LED, 1);
-  digitalWrite(ERROR_LED, 1);
-  delay(2000);
-
-  digitalWrite(RED_LED, 0);
-  digitalWrite(YELLOW_LED, 0);
-  digitalWrite(GREEN_LED, 0);
-  digitalWrite(POWER_LED, 1);  // Leave power LED on
-  digitalWrite(TIMER_LED, 0);
-  digitalWrite(ERROR_LED, 0);
-  delay(1000);
-
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
 
   initializeSD_ADC();  // do this first for writing debugging info to sd
+  checkForDumpCommand();   // If the user requested an SD dump, do so
 
-  // If the user requested an SD dump, do so
-  checkForDumpCommand();
-
-  // if (!rtc_ds3231.begin()) {
-  //   Serial.println("Couldn't find RTC!");
-  //   writeTextSD("Couldn't find RTC!");
-  //   errorBlinkLoop(10000);
-  // } else {
-  //   Serial.println("RTC set");
-  //   writeTextSD("\n");
-  //   writeTextSD(" RTC set");
-  // }
-
-  // uncomment to adjust time and immediately reupload with comment
-  // rtc_ds3231.adjust(DateTime(F(__DATE__), F(__TIME__)) + TimeSpan(0,0,0,1  ));
-
-  // rtc_ds3231.disable32K();
-  // rtc_ds3231.writeSqwPinMode(DS3231_OFF);
-
-  // fireAlarm2();  // check to see if we are here because of button press
-
-  Serial.print("Current RTC date/time : ");
+  Serial.print("System date-time: ");
   printDateTime();
 
   //RTC adjust
@@ -284,40 +229,48 @@ void setup() {
     putToSleep(rtc_ds3231.now() + TimeSpan(0, T_HRS, T_MINS, T_SECS));
   } else
 #endif
-
   {
     // Set the alarm before the measurement cycle. Otherwise you need let it
     // run a full measurment cycle while programming or it won't wake up!
     setNextAlarm();
     measurementCycle();
   }
+
   turnOff();
+  digitalWrite(GREEN_LED, LOW);
   delay(100);
   Serial.println("If we make it here we are on USB power and will enter loop()");
 }
 
-/*  The loop() is only reached when under USB power!
+/*  The loop() is only reached when under USB power! 
   */
 void loop() {
-  static int tm = 0;
-  // this mimics the behavior with battery power
   if (rtc_ds3231.alarmFired(2)) {
-    Serial.println("\nAlarm 2 fired > Rebooting...");
+    Serial.println("\nAlarm2 fired in loop() - rebooting...");
+    delay(300);
+    rp2040.reboot();
+  }
+
+  if (rtc_ds3231.alarmFired(1)) {
+    Serial.println("\nAlarm1 fired in loop() - rebooting...");
     delay(300);
     rp2040.reboot();
   }
 
   checkForDumpCommand();
 
-  if (tm > 5000) {
-    Serial.print("+");
-    tm = 0;
-  } else {
-    tm++;
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint > 3000) {
+    Serial.print(".");
+    printDateTime();
+    printRegisterState();
+    lastPrint = millis();
   }
 }
 
 void measurementCycle() {
+  allLEDs(LOW);
+  
   HeatingState heatingState = HeatingState::PREHEAT;
 
   // Delay execution until the clock rolls over to the next second to align execution.
@@ -352,171 +305,8 @@ void measurementCycle() {
     writeSD(heatingState);
 
     // Toggle the LED, but don't delay 1 second. Instead poll the RTC time until we reach the next second.
-    //toggleLedDelay(0);
     digitalWrite(TIMER_LED, !digitalRead(TIMER_LED));
     waitForNextSecond();
   }
   digitalWrite(GREEN_LED, LOW);
 }
-
-/*   This will sleep until the next multiple of T_MINS.
-  If T_MINS is 30, it will sleep until the minute hand says 0 or 30.
-  If T_MINS is 2, it will sleep until the minute hand says 0, 2, ... 58.
-  Important: If the measurement cycle time is more than T_MINS, it will not 
-  take a measurement cycle every T_MINS. For examplle, if T_MINS = 2 but 
-  the measurement cycle takes 3 minutes, it will actually measure every 4 minutes!
-  // This will set the alarm for the next measurement
-  */
-void setNextAlarm() {
-
-  DateTime currentTime = rtc_ds3231.now();
-  int nextMinute = currentTime.minute() + 1;
-  while (nextMinute % T_MINS) {
-    nextMinute++;
-  }
-  if (nextMinute >= 60) {
-    nextMinute -= 60;
-  }
-  Serial.print("Next measurement will start at ");
-  Serial.print(nextMinute);
-  Serial.println(" minutes past the hour");
-
-  // We're ignoring the year through hour, only alarming on the minute and second fields.s
-  DateTime wakeTime = DateTime(0, 0, 0, 0, nextMinute, 0);
-
-  rtc_ds3231.disableAlarm(1);
-  rtc_ds3231.clearAlarm(1);
-  digitalWrite(LED_BUILTIN, LOW);
-
-  // Sleep until the minutes match.
-  if (!rtc_ds3231.setAlarm2(wakeTime, DS3231_A2_Minute))
-    Serial.println("Error, A2 T wasn't set!");
-}
-
-/* Clears alarm 2 to turn off power
-  */
-void turnOff() {
-  rtc_ds3231.clearAlarm(2);  // POWER OFF
-}
-
-/*This will sleep until the next multiple of T_MINS.
-  If T_MINS is 30, it will sleep until the minute hand says 0 or 30.
-  If T_MINS is 2, it will sleep until the minute hand says 0, 2, ... 58.
-  Important: If the measurement cycle time is more than T_MINS, it will not 
-  take a measurement cycle every T_MINS. For examplle, if T_MINS = 2 
-  but the measurement cycle takes 3 minutes, it will actually measure every 4 minutes!
-  */
-/* void sleepUntilNextMeasurement() {
-
-  DateTime currentTime = rtc_ds3231.now();
-  int nextMinute = currentTime.minute() + 1;
-  while (nextMinute % T_MINS) {
-    nextMinute++;
-  }
-  if (nextMinute >= 60) {
-    nextMinute -= 60;
-  }
-  Serial.print("Next measurement will start at ");
-  Serial.print(nextMinute);
-  Serial.println(" minutes past the hour");
-
-  // We're ignoring the year through hour, only alarming on the minute and second fields.s
-  DateTime wakeTime = DateTime(0, 0, 0, 0, nextMinute, 0);
-
-  rtc_ds3231.disableAlarm(1);
-  rtc_ds3231.clearAlarm(1);
-  digitalWrite(LED_BUILTIN, LOW);
-
-  // Sleep until the minutes match.
-  if (!rtc_ds3231.setAlarm2(wakeTime, DS3231_A2_Minute))
-    Serial.println("Error, A2 T wasn't set!");
-
-  rtc_ds3231.clearAlarm(2);  // POWER OFF
-} */
-
-/* This version from Claude....
-************************ */
-void forceAlarm2Fired() {
-  // Read current status register (0x0F)
-  Wire.beginTransmission(0x68);  // DS3231 I2C address
-  Wire.write(0x0F);              // status register
-  Wire.endTransmission();
-  Wire.requestFrom(0x68, 1);
-  uint8_t status = Wire.read();
-
-  // Set A2F bit (bit 1)
-  status |= 0x02;
-
-  // Write back
-  Wire.beginTransmission(0x68);
-  Wire.write(0x0F);
-  Wire.write(status);
-  Wire.endTransmission();
-}
-
-void fireAlarm2() {
-  if (rtc_ds3231.alarmFired(2)) {
-    Serial.println("Alarm2 already fired - normal RTC wakeup.");
-    return;
-  }
-
-  Serial.println("\nButton wakeup - forcing A2F flag directly.");
-
-  // Make sure Alarm 2 interrupt is enabled (INTCN=1, A2IE=1)
-  // This should already be set by writeSqwPinMode(DS3231_OFF) but let's be sure
-  Wire.beginTransmission(0x68);
-  Wire.write(0x0E);  // control register
-  Wire.endTransmission();
-  Wire.requestFrom(0x68, 1);
-  uint8_t control = Wire.read();
-  control |= 0x06;  // set INTCN (bit2) and A2IE (bit1)
-  Wire.beginTransmission(0x68);
-  Wire.write(0x0E);
-  Wire.write(control);
-  Wire.endTransmission();
-
-  // Now force A2F flag
-  forceAlarm2Fired();
-
-  delay(5);  // Let DS3231 process
-
-  if (rtc_ds3231.alarmFired(2)) {
-    Serial.println("A2F confirmed set - power held on.");
-  } else {
-    Serial.println("Warning: A2F did not set!");
-  }
-}
-/***************************************/
-
-/* Manually fire alarm 2, if the system didn't power on because alarm 2 fired.
-   Otherwise we might power off when we clear alarm 1.
-  
-void fireAlarm2() {
-  // If alarm 2 is already fired, no need to do the following
-  if (rtc_ds3231.alarmFired(2)) {
-    Serial.println("Alarm2 already fired.");
-    return;
-  }
-
-  // Store the current alarm 2 settings so we can restore them after
-  DateTime currentAlarm2 = rtc_ds3231.getAlarm2();
-  auto currentAlarm2Mode = rtc_ds3231.getAlarm2Mode();
-
-  // Set alarm 2 to go off when the minutes match the current minute
-  rtc_ds3231.setAlarm2(rtc_ds3231.now(), DS3231_A2_Minute);
-
-  // It's remotely possible that the minute will roll over between getting the current time
-  // and setting the alarm. If alarm 2 still isn't fired, try again.
-  if (!rtc_ds3231.alarmFired(2)) {
-    rtc_ds3231.setAlarm2(rtc_ds3231.now(), DS3231_A2_Minute);
-  }
-
-  // If we still didn't get it, print an error message. Could be a misunderstanding.
-  if (!rtc_ds3231.alarmFired(2)) {
-    Serial.println("Unable to fire alarm 2 manually!");
-  }
-
-  // Restore the previous alarm 2 settings
-  rtc_ds3231.setAlarm2(currentAlarm2, currentAlarm2Mode);
-}
-*/

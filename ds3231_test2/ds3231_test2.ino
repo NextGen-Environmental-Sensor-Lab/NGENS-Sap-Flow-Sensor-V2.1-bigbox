@@ -137,9 +137,8 @@ void printDateTime() {
   Serial.print(buf);
 }
 
-// -------------------------------------------------------
 // Print raw DS3231 register state for diagnostics
-// -------------------------------------------------------
+  // -------------------------------------------------------
 void printRegisterState() {
 
   Wire.beginTransmission(0x68);
@@ -173,7 +172,6 @@ void printRegisterState() {
 // GREEN LED on = latched, safe to release
 // -------------------------------------------------------
 void fireAlarm2() {
-  //Serial.println("fireAlarm2() called.");
   if (rtc_ds3231.alarmFired(2)) {
     Serial.println("Alarm2 already fired. Normal RTC wakeup. Power is latched.");
     return;
@@ -181,14 +179,12 @@ void fireAlarm2() {
 
   //digitalWrite(RED_LED, HIGH);
   //Serial.println("Alarm2 NOT fired- button press");
-
   DateTime fireTime = rtc_ds3231.now() + TimeSpan(2);
   if (!rtc_ds3231.setAlarm1(fireTime, DS3231_A1_Date)) {
     Serial.println("ERROR: Failed to set Alarm1!");
     digitalWrite(ERROR_LED, HIGH);
     return;
   }
-
   Serial.printf("Alarm1 set for: %02d:%02d:%02d\n", fireTime.hour(), fireTime.minute(), fireTime.second());
 
   // Enable Alarm1 interrupt (A1IE = bit0, INTCN = bit2)

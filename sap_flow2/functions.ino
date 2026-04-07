@@ -1,3 +1,107 @@
+
+/*   This will sleep until the next multiple of T_MINS.
+  If T_MINS is 30, it will sleep until the minute hand says 0 or 30.
+  If T_MINS is 2, it will sleep until the minute hand says 0, 2, ... 58.
+  Important: If the measurement cycle time is more than T_MINS, it will not 
+  take a measurement cycle every T_MINS. For examplle, if T_MINS = 2 but 
+  the measurement cycle takes 3 minutes, it will actually measure every 4 minutes!
+  // This will set the alarm for the next measurement
+  */
+void setNextAlarm() {
+
+  DateTime currentTime = rtc_ds3231.now();
+  int nextMinute = currentTime.minute() + 1;
+  while (nextMinute % T_MINS) {
+    nextMinute++;
+  }
+  if (nextMinute >= 60) {
+    nextMinute -= 60;
+  }
+  Serial.print("Setting next Alarm2 for minute: ");
+  Serial.println(nextMinute);
+
+  // We're ignoring the year through hour, only alarming on the minute and second fields.s
+  DateTime wakeTime = DateTime(0, 0, 0, 0, nextMinute, 0);
+
+  if (!rtc_ds3231.setAlarm2(wakeTime, DS3231_A2_Minute)) {
+    Serial.println("ERROR: Failed to set Alarm2!");
+  } else {
+    //Serial.println("Alarm2 set successfully.");
+  }
+
+  // Sleep until the minutes match.
+  if (!rtc_ds3231.setAlarm2(wakeTime, DS3231_A2_Minute))
+    Serial.println("Error, A2 T wasn't set!");
+}
+
+// Power down - clear both alarms to release SQW
+  // -------------------------------------------------------
+void turnOff() {
+  // Serial.println("turnOff() called - cutting power.");
+  // printRegisterState();
+  Serial.println("Both alarms cleared. Power should cut now.\n");
+  allLEDs(LOW);  // all LEDs off before power cuts
+  rtc_ds3231.clearAlarm(1);
+  rtc_ds3231.clearAlarm(2);
+}
+
+// Latch power on if woken by button press.
+  // RED LED on = hold button
+  // GREEN LED on = latched, safe to release
+  // -------------------------------------------------------
+void fireAlarm2() {
+  if (rtc_ds3231.alarmFired(2)) {
+    //Serial.println("Alarm2 already fired. Normal RTC wakeup. Power is latched.");
+    return;
+  }
+
+  //digitalWrite(RED_LED, HIGH);
+  //Serial.println("Alarm2 NOT fired- button press");
+  DateTime fireTime = rtc_ds3231.now() + TimeSpan(2);
+  if (!rtc_ds3231.setAlarm1(fireTime, DS3231_A1_Date)) {
+    Serial.println("ERROR: Failed to set Alarm1!");
+    digitalWrite(ERROR_LED, HIGH);
+    return;
+  }
+  //Serial.printf("Alarm1 set for: %02d:%02d:%02d\n", fireTime.hour(), fireTime.minute(), fireTime.second());
+
+  // Enable Alarm1 interrupt (A1IE = bit0, INTCN = bit2)
+  Wire.beginTransmission(0x68);
+  Wire.write(0x0E);
+  Wire.endTransmission();
+  Wire.requestFrom(0x68, 1);
+  if (!Wire.available()) {
+    Serial.println("ERROR: No response reading control register!");
+    digitalWrite(ERROR_LED, HIGH);
+    return;
+  }
+  uint8_t control = Wire.read();
+  control |= 0x05;  // INTCN (bit2) + A1IE (bit0)
+  Wire.beginTransmission(0x68);
+  Wire.write(0x0E);
+  Wire.write(control);
+  Wire.endTransmission();
+  //Serial.println("Alarm1 interrupt enabled. Waiting for Alarm1 to fire...");
+
+  // Wait for Alarm1 to fire
+  unsigned long start = millis();
+  while (!rtc_ds3231.alarmFired(1)) {
+    if (millis() - start > 5000) {
+      Serial.println("TIMEOUT: Button released too early - power latch failed.");
+      digitalWrite(RED_LED, LOW);
+      digitalWrite(ERROR_LED, HIGH);
+      return;
+    }
+    //digitalWrite(RED_LED, !digitalRead(RED_LED));
+    delay(50);
+  }
+
+  // Latched! Signal user to release button
+  //Serial.println("Alarm1 fired. Power latched. Release the button ok.");
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(GREEN_LED, HIGH);  // "safe to release"
+}
+
 /*  Infinite blink error LED with ms interval
   */
 void errorBlinkLoop(int ms) {
@@ -50,7 +154,6 @@ void initializeSD_ADC() {
 }
 
 /*
-
   */
 String getTimestamp(DateTime DT) {
   char datetime[32] = "YYYY/MM/DD hh:mm:ss";
@@ -59,14 +162,12 @@ String getTimestamp(DateTime DT) {
 }
 
 /*
-
   */
 String getTimestamp() {
   return getTimestamp(rtc_ds3231.now());
 }
 
 /*
-
   */
 DateTime inputDateTime() {
   // char datetime[32] = "YYYY/MM/DD hh:mm:ss";
@@ -104,7 +205,6 @@ DateTime inputDateTime() {
 }
 
 /*
-
   */
 void printDateTime(DateTime DT) {
   Serial.print(getTimestamp(DT) + "->");
@@ -139,64 +239,6 @@ void waitForNextSecond() {
     delay(1);
   }
 }
-
-/* Set alarm 1 for the end of the preheat period.
-  */
-/*  
-  void setPreheatAlarm() {
-
-    if (rtc_ds3231.alarmFired(2)) {
-      writeTextSD("setPREH: A2 fired, clear A1");
-      rtc_ds3231.disableAlarm(1);
-      rtc_ds3231.clearAlarm(1);
-    } else {
-      writeTextSD("setPREH: A2 not fired!");
-    }
-    writeTextSD("setting A1 for H");
-
-    DateTime DT = rtc_ds3231.now() + TimeSpan(0, PREH_HRS, PREH_MINS, PREH_SECS);
-
-    printDateTime();
-    Serial.print("H will start at ");
-    printTime(DT);
-    Serial.println();
-
-    if (!rtc_ds3231.setAlarm1(DT, DS3231_A1_Hour))
-      Serial.println("Error, alarm 1 PREH wasn't set!");
-  }
-
-  // Set alarm 1 for the end of the heat period. 
-  void setHeatAlarm() {  //
-    rtc_ds3231.disableAlarm(1);
-    rtc_ds3231.clearAlarm(1);
-
-    DateTime DT = rtc_ds3231.now() + TimeSpan(0, H_HRS, H_MINS, H_SECS);
-
-    printDateTime();
-    Serial.print("POSTH will start at ");
-    printTime(DT);
-    Serial.println();
-
-    if (!rtc_ds3231.setAlarm1(DT, DS3231_A1_Hour))
-      Serial.println("Error, alarm 1 H wasn't set!");
-  }
-
-  // Set alarm 1 for the end of the postheat period. 
-  void setPostheatAlarm() {
-    rtc_ds3231.disableAlarm(1);
-    rtc_ds3231.clearAlarm(1);
-
-    DateTime DT = rtc_ds3231.now() + TimeSpan(0, POSTH_HRS, POSTH_MINS, POSTH_SECS);
-
-    printDateTime();
-    Serial.print("POSTH will end at ");
-    printTime(DT);
-    Serial.println();
-
-    if (!rtc_ds3231.setAlarm1(DT, DS3231_A1_Hour))
-      Serial.println("Error, alarm 1 POSTH wasn't set!");
-  }
-*/
 
 /* Measure the battery using A0, with 1k/10k voltage divider. Returns in unit Volts.
  */
@@ -319,7 +361,7 @@ void writeHeaderSD() {
   //File myFile = SD.open(FILE_NAME, FILE_WRITE);
   // NEW FOR RP2040
   FsFile myFile = SD.open(FILE_NAME, FILE_WRITE);
-  myFile.printf("\n*****************************\nM- Starting Event on Device %s\n", DEVICE_NAME);
+  myFile.printf("\nM- *****************************\nM- Starting Event on Device %s\n", DEVICE_NAME);
 
   String datetime = getTimestamp();
 
@@ -408,9 +450,6 @@ void heaterOn() {
   // digitalWrite(YELLOW_LED, HIGH);
   // digitalWrite(GREEN_LED, LOW);
 }
-
-/*
-  */
 void heaterOFF() {
   pinMode(HEATER_PIN, OUTPUT);
   digitalWrite(HEATER_PIN, LOW);
@@ -419,15 +458,61 @@ void heaterOFF() {
   // digitalWrite(GREEN_LED, HIGH);
 }
 
-/*
-  */
-void toggleLedDelay(uint32_t delayms) {
-  if (ledToggle) {
-    digitalWrite(LED_BUILTIN, HIGH);
-    ledToggle = false;
-  } else {
-    digitalWrite(LED_BUILTIN, LOW);
-    ledToggle = true;
-  }
-  delay(delayms);
+// Initialize all LED pins
+  // -------------------------------------------------------
+void initLEDs() {
+  pinMode(RED_LED, OUTPUT);
+  digitalWrite(RED_LED, LOW);
+  pinMode(YELLOW_LED, OUTPUT);
+  digitalWrite(YELLOW_LED, LOW);
+  pinMode(GREEN_LED, OUTPUT);
+  digitalWrite(GREEN_LED, LOW);
+  pinMode(POWER_LED, OUTPUT);
+  digitalWrite(POWER_LED, LOW);
+  pinMode(TIMER_LED, OUTPUT);
+  digitalWrite(TIMER_LED, LOW);
+  pinMode(ERROR_LED, OUTPUT);
+  digitalWrite(ERROR_LED, LOW);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+// Turn all LEDs on/off
+void allLEDs(int ONOFF) {
+  digitalWrite(RED_LED, ONOFF);
+  digitalWrite(YELLOW_LED, ONOFF);
+  digitalWrite(GREEN_LED, ONOFF);
+  //digitalWrite(POWER_LED, ONOFF);
+  digitalWrite(TIMER_LED, ONOFF);
+  digitalWrite(ERROR_LED, ONOFF);
+  digitalWrite(LED_BUILTIN, ONOFF);
+}
+
+// Print raw DS3231 register state for diagnostics
+  // -------------------------------------------------------
+void printRegisterState() {
+
+  Wire.beginTransmission(0x68);
+  Wire.write(0x0E);
+  uint8_t err = Wire.endTransmission();
+  Wire.requestFrom(0x68, 1);
+  uint8_t control = Wire.available() ? Wire.read() : 0xFF;
+
+  Wire.beginTransmission(0x68);
+  Wire.write(0x0F);
+  Wire.endTransmission();
+  Wire.requestFrom(0x68, 1);
+  uint8_t status = Wire.available() ? Wire.read() : 0xFF;
+
+  char buf[128];
+  snprintf(buf, sizeof(buf),
+           "i2c err: %d, ctrl (0x0E): 0x%02X, stat (0x0F): 0x%02X"
+           ", INTCN: %s, A2IE: %s, A1IE: %s, A2F: %s, A1F: %s",
+           err, control, status,
+           (control & 0x04) ? "SET" : "NOT SET",
+           (control & 0x02) ? "SET" : "NOT SET",
+           (control & 0x01) ? "SET" : "NOT SET",
+           (status & 0x02) ? "SET" : "NOT SET",
+           (status & 0x01) ? "SET" : "NOT SET");
+  Serial.println(buf);
 }
