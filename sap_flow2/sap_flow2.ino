@@ -136,7 +136,7 @@
 #define H_SECS 2
 //#define H_SECS 10
 /// POTSTH is the measurement period after heat
-#define POSTH_SEC S 120
+#define POSTH_SECS 120
 //#define POSTH_SECS 20
 // ......|______|----|_____________|...................... |____|----|_____________|
 //         PREH   H       POSTH
