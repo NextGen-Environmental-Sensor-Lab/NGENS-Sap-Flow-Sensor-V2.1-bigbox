@@ -2,9 +2,10 @@
 
 BIGGER BOX, CIRCULAR CONNECTOR, NEW PCB, NEW CPU (RP2040), UPDATED CODE ETC. 
 
-| SAPFLOW SENSOR V2.1 | |  |  |  |  |  |  |
+<small>
+
+| | |  |  |  |  |  |  |
 | :---- | :---- | ----- | ----- | ----- | ----- | ----- | :---- |
-| **Datalogger** |  |  |  |  |  |  |  |
 | **Last updated: 1-26-26** | **PRICE BREAK POINT: 25** |  | **Units** | **30** | **budget** | **4,900.00** |  |
 | **Designator** | **Part** | **tot chrg supplier** | **Supplier** | **q/ system** | **$ per part** | **$ per sensor** | **link** |
 | JST-PH 10pin with cable | 2 x 20-pack, tot 40 | 33.98 | Amazon | 1 | 1.13 | 1.13 | [Amazon.com 40Pcs jst ph 2.0 Connectors 10 pin w 20pcs Mini](https://www.amazon.com/40Pcs-Connectors-Connector-Include-Female/dp/B0DMZLGB5D?th=1) |
@@ -29,3 +30,4 @@ BIGGER BOX, CIRCULAR CONNECTOR, NEW PCB, NEW CPU (RP2040), UPDATED CODE ETC.
 | Polycase WH-10-01 | With hole for connector | 748.47 | Polycase | 1 | 24.95 | 24.95 | [https://www.polycase.com/wh-10](https://www.polycase.com/wh-02) |
 | Ni-MH 1.2V 2500mAh AA batt | 500-pack \+ 100-pack, tot 600 | 851.98 | Tenergy | 20 | 1.42 | 28.40 | [https://www.eblofficial.com/products/rechargeable-nimh-aa-battery?variant=40668336455762](https://www.eblofficial.com/products/rechargeable-nimh-aa-battery?variant=40668336455762) |
 
+</small>
