@@ -169,7 +169,7 @@ enum class HeatingState {
 RTC_DS3231 rtc_ds3231;
 Adafruit_ADS1115 ads1, ads2;
 SdFat SD;
-float tempC1, tempC2, tempC3, tempC4, tempC5, tempC6, tempC7, tempC8;
+float tempC1, tempC2, tempC3, tempC4, tempC5, tempC6, tempC7, tempC8, batteryLevel;
 
 void setup() {
   // LEDs first - red on immediately so user knows system is alive
@@ -210,14 +210,14 @@ void setup() {
     digitalWrite(TIMER_LED, 0);
   }
 
+  batteryLevel = measureVoltage();
   writeHeaderSD();
 
-#if ENABLE_VOLTAGE_CUTOFF
-  float voltage = measureVoltage();
-  if (voltage < VOLTAGE_CUTOFF) {
+#if ENABLE_VOLTAGE_CUTOFF // this #if needs fixing
+  if (batteryLevel < VOLTAGE_CUTOFF) {
     String message;
     message += "Battery pack voltage is ";
-    message += String(voltage, 3);
+    message += String(batteryLevel, 3);
     message += "V which is below the cutoff of ";
     message += String(VOLTAGE_CUTOFF, 3);
     message += "V. The measurement cycle will be skipped.\n";

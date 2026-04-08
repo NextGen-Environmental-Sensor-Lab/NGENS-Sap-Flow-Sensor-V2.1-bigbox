@@ -28,10 +28,6 @@ void setNextAlarm() {
   } else {
     //Serial.println("Alarm2 set successfully.");
   }
-
-  // Sleep until the minutes match.
-  if (!rtc_ds3231.setAlarm2(wakeTime, DS3231_A2_Minute))
-    Serial.println("Error, A2 T wasn't set!");
 }
 
 // Power down - clear both alarms to release SQW
@@ -55,8 +51,6 @@ void fireAlarm2() {
     return;
   }
 
-  //digitalWrite(RED_LED, HIGH);
-  //Serial.println("Alarm2 NOT fired- button press");
   DateTime fireTime = rtc_ds3231.now() + TimeSpan(2);
   if (!rtc_ds3231.setAlarm1(fireTime, DS3231_A1_Date)) {
     Serial.println("ERROR: Failed to set Alarm1!");
@@ -97,7 +91,7 @@ void fireAlarm2() {
   }
 
   // Latched! Signal user to release button
-  //Serial.println("Alarm1 fired. Power latched. Release the button ok.");
+  Serial.println("Alarm1 fired. Power latched. Release the button ok.");
   digitalWrite(RED_LED, LOW);
   digitalWrite(GREEN_LED, HIGH);  // "safe to release"
 }
@@ -177,8 +171,8 @@ DateTime inputDateTime() {
     Serial.read();
 
   Serial.println("Enter date-time as YYYY/MM/dd hh:mm:ss");
-  static char message[32];
-  static unsigned int message_pos = 0;
+  char message[32];
+  unsigned int message_pos = 0;
 
   while (Serial.available() == 0) {};
   while (Serial.available() > 0) {
@@ -243,14 +237,14 @@ void waitForNextSecond() {
 /* Measure the battery using A0, with 1k/10k voltage divider. Returns in unit Volts.
  */
 float measureVoltage() {
-  float batteryLevel = analogRead(A0);
+  float batteryV = analogRead(A0);
   // 10k/100k voltage divider
-  batteryLevel *= 11;
+  batteryV *= 11;
   // 3.3V analog reference
-  batteryLevel *= 3.3;
+  batteryV *= 3.3;
   // 10-bit ADC
-  batteryLevel /= 1024;
-  return batteryLevel;
+  batteryV /= 1024;
+  return batteryV;
 }
 
 /* Reads the thermistors, stores the temps in tempC1 thru tempC8. 
@@ -301,11 +295,8 @@ void readThermistor() {
 /*
   */
 void writeSD(HeatingState heatingState) {
-  //File myFile = SD.open(FILE_NAME, FILE_WRITE);
-  // NEW FOR RP2040
+
   FsFile myFile = SD.open(FILE_NAME, FILE_WRITE);
-  SdSpiConfig config(SD_CS_PIN, DEDICATED_SPI, SD_SCK_MHZ(16), &SPI1);
-  //
   String outString(getTimestamp());
   outString += String(", ");
   outString += String(tempC1, 3) + ", ";
@@ -335,7 +326,7 @@ void writeSD(HeatingState heatingState) {
       }
   }
 
-  outString += ", " + String(measureVoltage(), 3);
+  outString += ", " + String(batteryLevel, 3);
 
   myFile.println(outString);
   myFile.close();
@@ -376,7 +367,6 @@ void writeHeaderSD() {
   // myFile.printf(" Sleep Time: %d:%d, Wake Time: %d:%d \n", SLEEP_HRS, SLEEP_MINS, WAKE_HRS, WAKE_MINS);
 
   // Report the battery level here
-  const float batteryLevel = measureVoltage();
   myFile.print("M-");
   myFile.print(datetime);
   myFile.printf(" Battery voltage: %f V\n", batteryLevel);
@@ -428,7 +418,7 @@ void dumpSdToSerial() {
 
   while (true) {
     int b = myFile.read();
-    if (b <= 0) break;
+    if (b < 0) break;
     Serial.write(b);
   }
 
@@ -444,23 +434,15 @@ void dumpSdToSerial() {
 /*
   */
 void heaterOn() {
-  pinMode(HEATER_PIN, OUTPUT);
   digitalWrite(HEATER_PIN, HIGH);
-
-  // digitalWrite(YELLOW_LED, HIGH);
-  // digitalWrite(GREEN_LED, LOW);
 }
 void heaterOFF() {
-  pinMode(HEATER_PIN, OUTPUT);
   digitalWrite(HEATER_PIN, LOW);
-
-  // digitalWrite(YELLOW_LED, LOW);
-  // digitalWrite(GREEN_LED, HIGH);
 }
 
 // Initialize all LED pins
   // -------------------------------------------------------
-void initLEDs() {
+void initLEDs() {AA
   pinMode(RED_LED, OUTPUT);
   digitalWrite(RED_LED, LOW);
   pinMode(YELLOW_LED, OUTPUT);
@@ -475,6 +457,9 @@ void initLEDs() {
   digitalWrite(ERROR_LED, LOW);
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
+
+  pinMode(HEATER_PIN,OUTPUT);
+  digitalWrite(HEATER_PIN, LOW);
 }
 
 // Turn all LEDs on/off
@@ -482,7 +467,7 @@ void allLEDs(int ONOFF) {
   digitalWrite(RED_LED, ONOFF);
   digitalWrite(YELLOW_LED, ONOFF);
   digitalWrite(GREEN_LED, ONOFF);
-  //digitalWrite(POWER_LED, ONOFF);
+  //digitalWrite(POWER_LED, ONOFF); // Always on
   digitalWrite(TIMER_LED, ONOFF);
   digitalWrite(ERROR_LED, ONOFF);
   digitalWrite(LED_BUILTIN, ONOFF);
