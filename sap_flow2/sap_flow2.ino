@@ -121,30 +121,29 @@
 #include <SPI.h>
 #include "SdFat.h"
 #include <Adafruit_ADS1X15.h>
+#include <EEPROM.h>
 
 /* T is the period between measurement events. Ideally, this should evenly
  divide an hour because we set the alarm to the next multiple. If not, e.g. 7, 
  then there will be a short period after the hour with the remainder of 60 mod 7
 */
 
-#define T_MINS 30
-//#define T_MINS 4
-/// PREH is the measurement period before heat on
-#define PREH_SECS 20
-//#define PREH_SECS 20
-/// H is the period to apply heat
-#define H_SECS 2
-//#define H_SECS 10
-/// POTSTH is the measurement period after heat
-#define POSTH_SECS 120
-//#define POSTH_SECS 20
+#define T_MINS 3
+#define PREH_SECS 10
+#define H_SECS 1
+#define POSTH_SECS 10
+
+// #define T_MINS 30
+// /// PREH is the measurement period before heat on
+// #define PREH_SECS 20
+// /// H is the period to apply heat
+// #define H_SECS 2
+// /// POTSTH is the measurement period after heat
+// #define POSTH_SECS 120
 // ......|______|----|_____________|...................... |____|----|_____________|
 //         PREH   H       POSTH
 //.......|............................T....................|....................
 // note: T > PREH + H + POSTH > TS
-
-#define DEVICE_NAME "SF_03"
-#define FILE_NAME DEVICE_NAME ".txt"
 
 // states (periods) in cycle
 enum class HeatingState {
@@ -161,15 +160,27 @@ enum class HeatingState {
 #define POWER_LED 10
 #define TIMER_LED 9
 #define ERROR_LED 5
-#define SD_CS_PIN 23 // NEW FOR RP2040
+#define SD_CS_PIN 23  // NEW FOR RP2040
 // A battery voltage of 0.9V per cell is a commonly cited cutoff voltage for NiMH cells
 #define ENABLE_VOLTAGE_CUTOFF (0)
 #define VOLTAGE_CUTOFF (0.9 * 8)
+// for provisioning
+#define EEPROM_SIZE 16
+#define EEPROM_MAGIC_ADDR 0
+#define EEPROM_ID_ADDR 1
+#define EEPROM_MAGIC_VAL 0xA5
+#define ID_MAX_LEN 12
+// Provisioning button
+#define PROVISION_PIN A1
 
 RTC_DS3231 rtc_ds3231;
 Adafruit_ADS1115 ads1, ads2;
 SdFat SD;
+String deviceID = "UNKNOWN";  // Global device ID
+String fileName;
 float tempC1, tempC2, tempC3, tempC4, tempC5, tempC6, tempC7, tempC8, batteryLevel;
+int16_t ADC4, ADC8;                           // ADC4 is connected to voltage divider, ADC8 is sensing heat current
+volatile bool provisioningRequested = false;  // Flag set by ISR - must be volatile
 
 void setup() {
   // LEDs first - red on immediately so user knows system is alive
@@ -181,6 +192,17 @@ void setup() {
   delay(800);
   Serial.println(__FILE__);
 
+  loadIDfromEEPROM();
+
+  // Configure provisioning button pin
+  // Button connects A1 to GND, so we need internal pull-up
+  pinMode(PROVISION_PIN, INPUT_PULLUP);
+  // Attach interrupt - triggers on falling edge (HIGH -> LOW when button pressed)
+  attachInterrupt(digitalPinToInterrupt(PROVISION_PIN), onProvisionButton, FALLING);
+  Serial.println("Provisioning button interrupt armed on A1.");
+
+  Wire.end();   delay(10);
+  Wire.begin(); delay(10);
   if (!rtc_ds3231.begin()) {
     Serial.println("Couldn't find RTC!");
     while (1) {
@@ -194,26 +216,24 @@ void setup() {
   rtc_ds3231.writeSqwPinMode(DS3231_OFF);
 
   fireAlarm2();
+  analogReadResolution(12);  // set to 12-bit (0–4095) for RP2040
 
-  initializeSD_ADC();  // do this first for writing debugging info to sd
-  checkForDumpCommand();   // If the user requested an SD dump, do so
+  fileName = deviceID + ".csv";  // make filename after reading EEPROM
+  initializeSD_ADC();            // do this first for writing debugging info to sd
+  checkForDumpCommand();         // If the user requested an SD dump, do so
 
   Serial.print("System date-time: ");
   printDateTime();
 
   //RTC adjust
   if (rtc_ds3231.lostPower()) {
-    digitalWrite(TIMER_LED, 1);
-    DateTime dt = inputDateTime();
-    if (dt.isValid())
-      rtc_ds3231.adjust(dt);
-    digitalWrite(TIMER_LED, 0);
+    Serial.println("RTC lost power - entering provisioning to set time.");
+    digitalWrite(TIMER_LED, HIGH);
+    provisioningMode();
+    digitalWrite(TIMER_LED, LOW);
   }
 
-  batteryLevel = measureVoltage();
-  writeHeaderSD();
-
-#if ENABLE_VOLTAGE_CUTOFF // this #if needs fixing
+#if ENABLE_VOLTAGE_CUTOFF  // this #if needs fixing
   if (batteryLevel < VOLTAGE_CUTOFF) {
     String message;
     message += "Battery pack voltage is ";
@@ -230,10 +250,21 @@ void setup() {
   } else
 #endif
   {
+    checkProvisioning();
     // Set the alarm before the measurement cycle. Otherwise you need let it
     // run a full measurment cycle while programming or it won't wake up!
     setNextAlarm();
+
+    writeHeaderSD();
+    batteryLevel = measureVoltage();
+    Serial.printf("Battery before event: %.3f\n", batteryLevel);
+    writeTextSD("Battery before event: " + String(batteryLevel, 3) + "\n");
+
     measurementCycle();
+
+    batteryLevel = measureVoltage();
+    writeTextSD("Battery after event: " + String(batteryLevel, 3) + "\n");
+    Serial.printf("Battery voltage after event: %.3fV\n", batteryLevel);
   }
 
   turnOff();
@@ -258,27 +289,28 @@ void loop() {
   }
 
   checkForDumpCommand();
+  checkProvisioning();
 
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 3000) {
     Serial.print(".");
     printDateTime();
-    printRegisterState();
+    // printRegisterState();
     lastPrint = millis();
   }
 }
 
 void measurementCycle() {
   allLEDs(LOW);
-  
-  HeatingState heatingState = HeatingState::PREHEAT;
 
+  HeatingState heatingState = HeatingState::PREHEAT;
   // Delay execution until the clock rolls over to the next second to align execution.
   waitForNextSecond();
 
   const int fullCycleSeconds = PREH_SECS + H_SECS + POSTH_SECS;
 
   for (int i = 0; i < fullCycleSeconds; ++i) {
+    checkProvisioning();
     if (i < PREH_SECS) {
       // Spend this second in preheat
       heatingState = HeatingState::PREHEAT;
