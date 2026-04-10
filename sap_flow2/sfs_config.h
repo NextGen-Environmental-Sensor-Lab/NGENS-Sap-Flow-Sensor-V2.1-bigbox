@@ -14,22 +14,22 @@
  then there will be a short period after the hour with the remainder of 60 mod 7.
  Currently not set up to use HRS or SECS.
 */
-#define T_HRS 0
-#define T_MINS 3
-#define T_SECS 0
-#define PREH_SECS 10
-#define H_SECS 1
-#define POSTH_SECS 10
-
 // #define T_HRS 0
-// #define T_MINS 30
+// #define T_MINS 3
 // #define T_SECS 0
-// /// PREH is the measurement period before heat on
-// #define PREH_SECS 20
-// /// H is the period to apply heat
-// #define H_SECS 2
-// /// POTSTH is the measurement period after heat
-// #define POSTH_SECS 120
+// #define PREH_SECS 10
+// #define H_SECS 1
+// #define POSTH_SECS 10
+
+#define T_HRS 0
+#define T_MINS 30
+#define T_SECS 0
+/// PREH is the measurement period before heat on
+#define PREH_SECS 20
+/// H is the period to apply heat
+#define H_SECS 2
+/// POTSTH is the measurement period after heat
+#define POSTH_SECS 120
 
 // ......|______|----|_____________|...................... |____|----|_____________|
 //         PREH   H       POSTH

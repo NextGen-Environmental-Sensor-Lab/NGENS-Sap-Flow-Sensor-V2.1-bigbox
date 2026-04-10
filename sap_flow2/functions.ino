@@ -131,6 +131,7 @@ void initializeSD_ADC() {
 
   if (!SD.begin(config)) {
     Serial.println("Card failed or not present!");
+    checkProvisioning();
     errorBlinkLoop(250);
   }
   Serial.println("Card Initialized");

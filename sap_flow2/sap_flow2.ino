@@ -34,7 +34,7 @@ SdFat SD;
 String deviceID = "UNKNOWN";  // Global device ID
 String fileName;
 float tempC1, tempC2, tempC3, tempC4, tempC5, tempC6, batteryLevel;
-float heaterVoltage,heaterCurrentmA;
+float heaterVoltage, heaterCurrent;
 volatile bool provisioningRequested = false;  // Flag set by ISR - must be volatile
 
 void setup() {
@@ -56,8 +56,10 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PROVISION_PIN), onProvisionButton, FALLING);
   Serial.println("Provisioning button interrupt armed on A1.");
 
-  Wire.end();   delay(10);
-  Wire.begin(); delay(10);
+  Wire.end();
+  delay(10);
+  Wire.begin();
+  delay(10);
   if (!rtc_ds3231.begin()) {
     Serial.println("Couldn't find RTC!");
     while (1) {
@@ -130,7 +132,7 @@ void setup() {
 
 // -----------------------------------------------
 //  The loop() is only reached when under USB power!
-  // -----------------------------------------------
+// -----------------------------------------------
 void loop() {
   if (rtc_ds3231.alarmFired(2)) {
     Serial.println("\nAlarm2 fired in loop() - rebooting...");
