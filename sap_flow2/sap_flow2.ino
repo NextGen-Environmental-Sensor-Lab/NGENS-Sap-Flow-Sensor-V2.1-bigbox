@@ -6,144 +6,19 @@
 
     NEXTGEN SENSOR LAB, ASRC, CUNY. RTOLEDO-CROW OCT 2023
 
-    CODE MODDED FOR RP2040 ADDALOGGER AND SOME IMPROVEMENTS 04.07.2026
+    V2.1 'BIGBOX'. CODE MODDED FOR RP2040 ADDALOGGER AND SOME IMPROVEMENTS 04.07.2026
 */
 
-/* Stefan's notes
-
-  I'm changing the temp calculation to turn any value outside a reasonable range to NaN.
-  This is just to make the output prettier.
-
-  I modified writeSD() so that it composes the full string to be written and writes it
-  with a single println() call. The same exact string is printed to serial, including the timestamp.
-
-  I'm getting all bad values from the thermistors, even with probes hooked up. I don't know why.
-
-  I refactored the timestamp printing code. Now it uses a consistent format. 
-  I added an overload of printDateTime() with no argument -- it prints the current timestamp.
-
-  I'm really confused by the sleeping and waking code. Is it really programmed to go to sleep at 2:09 AM
-  and wake up at 2:10 AM?
-  Evonne says yeah. Ok, then...
-
-  Let's look at the ADC calculations. I see we're setting the gain to "ONE", which means +/-4.096V.
-  The reference voltage is 2.5V. So at nominal temperature, it should be 1.25V. With the 16-bit signed
-  format, it should read basically 10000 at nominal voltage. That's interesting.
-  The code divides 20000 by the reading, subtracts 1, then multiplies by 10000. 
-  I've verified the calculation. Remember the thermistor is on the top of the voltage divider!
-  Then there's some calculation to turn that into temperature. I'll just take that on faith.
-
-  So why are we reading bad values? Well the multimeter agrees the analog inputs are at 0V.
-  If the ADC reads 0V, the calculation would give NaN. If it reads 1 we would get 19.58E9 C. 
-  If it reads -1, we would get something similar negative. And those three values are what we're seeing!
-  Oh! The ADCs are powered from the uC, but the voltage reference is powered from 6V from the battery!
-
-  How much precision can we actually get from the thermistor and ADC?
-  A quick Excel sheet says if the ADC reading increases from 10000 to 10001, the calculated temperature
-  will change from 25.25439 to 25.25918. So the third place after the decimal is the last meaningful digit.
-  This also means that we aren't going to do much better than two places after the decimal that we had before.
-  We can do a little better by increasing the ADC gain.
-  If I increase the gain to 2x, our max reading is 2.048V, which corresponds to 51.7 C. That seems
-  perfectly acceptable. We can't increase the gain to 4x without cutting off at 16.6 C.
-
-  So I'll increase the gain to 2x. That will at least increase our resolution to 0.0024 C.
-  I'm also changing MAX_ADC to 40000 to compensate.
-
-
-  Is it really using the RTC alarms to schedule turning the heat on and off during the measurement cycle?
-  But the measurement cycle is looping on a 1000ms delay(). This could have bad consequences.
-  The RTC alarm isn't an interrupt, we're polling it. But we only poll it once per second. But it isn't
-  *exactly* a second, it's a second plus overhead. So there's bound to be slippage.
-  This means that the clock time from the RTC (and presumably the alarms too) will advance by 1 second
-  usually, and 2 seconds occasionally. So the 5 second heat pulse is really a 5 unit heat pulse, and
-  occasionally it will be a 4 unit heat pulse.
-  I collected the 100k+ timestamps from the SD card, filtered out the irrelevant ones, and did a frequency
-  analysis. 112851 1-steps, 13289 2-steps. That's 11.7%! If my calculations are correct, each period is
-  1.105 seconds long!
-  So 88.3% of the heat pulses are 5.525 seconds long, and 11.7% are 4.420 seconds long.
-  Ok. Can I corroborate this with the dataset?
-  A more direct way to check this. I counted the number of "heat" measurement lines between "pre-heat" and
-  "post-heat". 1.6% of the time there are only 4 "heat" lines. So not as bad as I thought.
-  This needs to be fixed.
-
-  Ok, let's get back to the issues I came here to look at. 
-  How about battery level? That should be easy. Done!
-
-  Now for dumping the contents. The data rate of Serial will be a problem for dumping the whole file.
-  There's currently 15MB, which would take 17 minutes even at 115200 (and maybe even longer).
-  Huh. The definition of Serial.begin() ignores the baud rate! So maybe it's faster than 115200, maybe
-  much faster
-  I just measured it as 17.9 kB/s, which is a little faster than 115200.
-  Evonne says they're running a measurement cycle every 30 minutes. That comes out to 27 seconds per day.
-  Not too bad for a first pass!
-  Perhaps at the end of the dump, we should move the existing data to a timestamped file, and start over.
-  Then each dump will include only the data since the last dump, but all data is preserved.
-
-
-  ## 2024-08-04
-
-  TODO
-    Include voltage in every row of the data
-    Low battery cutoff
-      (What voltage?)
-    Timing issue with the data
-      The data shows a bit of a stair-steppy thing every couple of seconds. 
-      I think that's because the measurement loop is using delay() for timing.
-    Work on data extraction time (lower priority)
-
-
-  I did a bunch of refactoring
-    Moved some global variables into inner scopes
-    Used a strong enum for heating states
-
-  How exactly are the two alarms being used?
-    It seems alarm 2 is used for putting the system to sleep
-    Alarm 1 is used to time out the three measurement phases
-
-  A problem with the dump procedure
-    When you plug in the USB to the laptop, you have to wait for a whole measurement cycle before the dump command is read!
-
-  What is the purpose of fireAlarm2()?
-    I'll bet it's the source of the clock drift Evonne mentioned
-    But why is it even there?
-    I think I know. If both alarms are cleared, the system will power off in deployment conditions.
-    If the system didn't wake due to alarm 2 firing, then clearing alarm 1 might power it off.
-      That could be because the device is on USB power, or because someone pushed the button to wake it early.
-    Alarm 1 can be set for seconds, but alarm 2 is only set for minutes.
-    So here's a better way, that doesn't involve changing the current time
-      Just set alarm 2 to go off at the current minute.
-      I've implemented that.
-
-
-*/
-
+// config.h contains all #includes, #defines and configuration.
+// Library includes are also listed here to ensure Arduino IDE
+// detects and links them correctly.
+#include "sfs_config.h"
 #include <RTClib.h>
 #include <SPI.h>
 #include "SdFat.h"
 #include <Adafruit_ADS1X15.h>
 #include <EEPROM.h>
-
-/* T is the period between measurement events. Ideally, this should evenly
- divide an hour because we set the alarm to the next multiple. If not, e.g. 7, 
- then there will be a short period after the hour with the remainder of 60 mod 7
-*/
-
-#define T_MINS 3
-#define PREH_SECS 10
-#define H_SECS 1
-#define POSTH_SECS 10
-
-// #define T_MINS 30
-// /// PREH is the measurement period before heat on
-// #define PREH_SECS 20
-// /// H is the period to apply heat
-// #define H_SECS 2
-// /// POTSTH is the measurement period after heat
-// #define POSTH_SECS 120
-// ......|______|----|_____________|...................... |____|----|_____________|
-//         PREH   H       POSTH
-//.......|............................T....................|....................
-// note: T > PREH + H + POSTH > TS
+#include <Wire.h>
 
 // states (periods) in cycle
 enum class HeatingState {
@@ -153,33 +28,13 @@ enum class HeatingState {
   END,
 };
 
-#define HEATER_PIN 6
-#define RED_LED 13     // PRE HEAT - shares pin with LEDBUILTIN
-#define YELLOW_LED 12  // HEAT
-#define GREEN_LED 11   // POST HEAT
-#define POWER_LED 10
-#define TIMER_LED 9
-#define ERROR_LED 5
-#define SD_CS_PIN 23  // NEW FOR RP2040
-// A battery voltage of 0.9V per cell is a commonly cited cutoff voltage for NiMH cells
-#define ENABLE_VOLTAGE_CUTOFF (0)
-#define VOLTAGE_CUTOFF (0.9 * 8)
-// for provisioning
-#define EEPROM_SIZE 16
-#define EEPROM_MAGIC_ADDR 0
-#define EEPROM_ID_ADDR 1
-#define EEPROM_MAGIC_VAL 0xA5
-#define ID_MAX_LEN 12
-// Provisioning button
-#define PROVISION_PIN A1
-
 RTC_DS3231 rtc_ds3231;
 Adafruit_ADS1115 ads1, ads2;
 SdFat SD;
 String deviceID = "UNKNOWN";  // Global device ID
 String fileName;
-float tempC1, tempC2, tempC3, tempC4, tempC5, tempC6, tempC7, tempC8, batteryLevel;
-int16_t ADC4, ADC8;                           // ADC4 is connected to voltage divider, ADC8 is sensing heat current
+float tempC1, tempC2, tempC3, tempC4, tempC5, tempC6, batteryLevel;
+float heaterVoltage,heaterCurrentmA;
 volatile bool provisioningRequested = false;  // Flag set by ISR - must be volatile
 
 void setup() {
@@ -233,7 +88,7 @@ void setup() {
     digitalWrite(TIMER_LED, LOW);
   }
 
-#if ENABLE_VOLTAGE_CUTOFF  // this #if needs fixing
+  #if ENABLE_VOLTAGE_CUTOFF  // this #if needs fixing
   if (batteryLevel < VOLTAGE_CUTOFF) {
     String message;
     message += "Battery pack voltage is ";
@@ -248,7 +103,7 @@ void setup() {
     // Go to sleep until the next wakeup time
     putToSleep(rtc_ds3231.now() + TimeSpan(0, T_HRS, T_MINS, T_SECS));
   } else
-#endif
+  #endif
   {
     checkProvisioning();
     // Set the alarm before the measurement cycle. Otherwise you need let it
@@ -273,8 +128,9 @@ void setup() {
   Serial.println("If we make it here we are on USB power and will enter loop()");
 }
 
-/*  The loop() is only reached when under USB power! 
-  */
+// -----------------------------------------------
+//  The loop() is only reached when under USB power!
+  // -----------------------------------------------
 void loop() {
   if (rtc_ds3231.alarmFired(2)) {
     Serial.println("\nAlarm2 fired in loop() - rebooting...");
@@ -293,7 +149,7 @@ void loop() {
 
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 3000) {
-    Serial.print(".");
+    Serial.print("USB connected -- ");
     printDateTime();
     // printRegisterState();
     lastPrint = millis();

@@ -1,12 +1,12 @@
-
-/*   This will sleep until the next multiple of T_MINS.
-  If T_MINS is 30, it will sleep until the minute hand says 0 or 30.
-  If T_MINS is 2, it will sleep until the minute hand says 0, 2, ... 58.
-  Important: If the measurement cycle time is more than T_MINS, it will not 
-  take a measurement cycle every T_MINS. For examplle, if T_MINS = 2 but 
-  the measurement cycle takes 3 minutes, it will actually measure every 4 minutes!
+// -------------------------------------------------------
+// This will sleep until the next multiple of T_MINS.
+  // If T_MINS is 30, it will sleep until the minute hand says 0 or 30.
+  // If T_MINS is 2, it will sleep until the minute hand says 0, 2, ... 58.
+  // Important: If the measurement cycle time is more than T_MINS, it will not 
+  // take a measurement cycle every T_MINS. For examplle, if T_MINS = 2 but 
+  // the measurement cycle takes 3 minutes, it will actually measure every 4 minutes!
   // This will set the alarm for the next measurement
-  */
+  // -------------------------------------------------------
 void setNextAlarm() {
 
   DateTime currentTime = rtc_ds3231.now();
@@ -30,6 +30,7 @@ void setNextAlarm() {
   }
 }
 
+// -------------------------------------------------------
 // Power down - clear both alarms to release SQW
 // -------------------------------------------------------
 void turnOff() {
@@ -41,6 +42,7 @@ void turnOff() {
   rtc_ds3231.clearAlarm(2);
 }
 
+// -------------------------------------------------------
 // Latch power on if woken by button press.
 // RED LED on = hold button
 // GREEN LED on = latched, safe to release
@@ -96,8 +98,9 @@ void fireAlarm2() {
   digitalWrite(GREEN_LED, HIGH);  // "safe to release"
 }
 
-/*  Infinite blink error LED with ms interval
-  */
+// -------------------------------------------------------
+//  Infinite blink error LED with ms interval
+  // -------------------------------------------------------
 void errorBlinkLoop(int ms) {
   while (true) {
     digitalWrite(ERROR_LED, !digitalRead(ERROR_LED));
@@ -105,8 +108,9 @@ void errorBlinkLoop(int ms) {
   }
 }
 
-/* For getting correct date and time for SD card
-  */
+// -------------------------------------------------------
+// For getting correct date and time for SD card
+    // -------------------------------------------------------
 void dateTime(uint16_t* date, uint16_t* time) {
   DateTime now = rtc_ds3231.now();
   // return date using FAT_DATE macro to format fields
@@ -116,8 +120,8 @@ void dateTime(uint16_t* date, uint16_t* time) {
   *time = FAT_TIME(now.hour(), now.minute(), now.second());
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void initializeSD_ADC() {
   // NEW FOR RP2040
   SdSpiConfig config(SD_CS_PIN, DEDICATED_SPI, SD_SCK_MHZ(16), &SPI1);
@@ -143,48 +147,48 @@ void initializeSD_ADC() {
   }
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 String getTimestamp(DateTime DT) {
   char datetime[32] = "YYYY/MM/DD hh:mm:ss";
   DT.toString(datetime);
   return String(datetime);
 }
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 String getTimestamp() {
   return getTimestamp(rtc_ds3231.now());
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void printDateTime(DateTime DT) {
   Serial.print(getTimestamp(DT) + "->");
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void printDateTime() {
   Serial.println(getTimestamp());
 }
 
-/*
-
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void printTime(DateTime DT) {
   char dt[32] = "hh:mm:ss ";
   DT.toString(dt);
   Serial.print(dt);
 }
 
-/*
-
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void printTimeSpan(TimeSpan TS) {
   Serial.printf("days:%d - %d:%d:%d ", TS.days(), TS.hours(), TS.minutes(), TS.seconds());
 }
 
-/* Wait until the clock rolls over to the next second. */
+// -------------------------------------------------------
+// Wait until the clock rolls over to the next second. 
+  // -------------------------------------------------------
 void waitForNextSecond() {
   DateTime startTime = rtc_ds3231.now();
   while (rtc_ds3231.now() == startTime) {
@@ -193,24 +197,26 @@ void waitForNextSecond() {
   }
 }
 
-/* Measure the battery using A0, with 1k/10k voltage divider. Returns in unit Volts.
-  Slow to respond onthe rp2040 so we take some avarage
-  */
+// -------------------------------------------------------
+//  Measure the battery using A0, with 1k/10k voltage divider. Returns in unit Volts.
+  //   Slow to respond onthe rp2040 so we take some avarage
+  // -------------------------------------------------------
 float measureVoltage() {
   long int rawVal = 0;
-  for(int i=0; i<10; i++) {
+  for (int i = 0; i < 10; i++) {
     rawVal += analogRead(A0);
     delay(50);
   }
-  float batteryV = rawVal/10.0;
-  batteryV = (batteryV * 3.3)/4095.0;
-  
+  float batteryV = rawVal / 10.0;
+  batteryV = (batteryV * 3.3) / 4095.0;
+
   //Serial.printf("Bat V: %f\n", batteryV);
-  return batteryV * 11.00; // the 11 is from the divider
+  return batteryV * 11.00;  // the 11 is from the divider
 }
 
-/* Reads the thermistors, stores the temps in tempC1 thru tempC8. 
-  */
+// -------------------------------------------------------
+// Reads the thermistors, stores the temps in tempC1 thru tempC6. Also heater V and heater I in mA 
+  // -------------------------------------------------------
 void readThermistor() {
   const float SERIESRESISTOR = 10000.0;
   const float MAX_ADC = 40000;  // Stefan changed this from 19999 to 40000, also changed gain to 2x
@@ -229,43 +235,43 @@ void readThermistor() {
   float ohms1 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout1) - 1);
   float ohms2 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout2) - 1);
   float ohms3 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout3) - 1);
-  // float ohms4 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout4) - 1);
+  
   float ohms5 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout5) - 1);
   float ohms6 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout6) - 1);
   float ohms7 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout7) - 1);
-  // float ohms8 = SERIESRESISTOR * ((MAX_ADC / (float)ADCout8) - 1);
-
+  
   // this function temp(ohms) is valid 0-50 C
   tempC1 = 62.57 - ohms1 * (0.005314) + 0.0000001827 * ohms1 * ohms1 - 0.000000000002448 * ohms1 * ohms1 * ohms1;
   tempC2 = 62.57 - ohms2 * (0.005314) + 0.0000001827 * ohms2 * ohms2 - 0.000000000002448 * ohms2 * ohms2 * ohms2;
   tempC3 = 62.57 - ohms3 * (0.005314) + 0.0000001827 * ohms3 * ohms3 - 0.000000000002448 * ohms3 * ohms3 * ohms3;
-  // tempC4 = 62.57 - ohms4 * (0.005314) + 0.0000001827 * ohms4 * ohms4 - 0.000000000002448 * ohms4 * ohms4 * ohms4;
-  tempC5 = 62.57 - ohms5 * (0.005314) + 0.0000001827 * ohms5 * ohms5 - 0.000000000002448 * ohms5 * ohms5 * ohms5;
-  tempC6 = 62.57 - ohms6 * (0.005314) + 0.0000001827 * ohms6 * ohms6 - 0.000000000002448 * ohms6 * ohms6 * ohms6;
-  tempC7 = 62.57 - ohms7 * (0.005314) + 0.0000001827 * ohms7 * ohms7 - 0.000000000002448 * ohms7 * ohms7 * ohms7;
-  // tempC8 = 62.57 - ohms8 * (0.005314) + 0.0000001827 * ohms8 * ohms8 - 0.000000000002448 * ohms8 * ohms8 * ohms8;
-
+  
+  tempC4 = 62.57 - ohms5 * (0.005314) + 0.0000001827 * ohms5 * ohms5 - 0.000000000002448 * ohms5 * ohms5 * ohms5;
+  tempC5 = 62.57 - ohms6 * (0.005314) + 0.0000001827 * ohms6 * ohms6 - 0.000000000002448 * ohms6 * ohms6 * ohms6;
+  tempC6 = 62.57 - ohms7 * (0.005314) + 0.0000001827 * ohms7 * ohms7 - 0.000000000002448 * ohms7 * ohms7 * ohms7;
+  
+  
   // If the value is way outside what should be possible, report NaN instead of a crazy value
   if (tempC1 > 150 || tempC1 < -60) tempC1 = NAN;
   if (tempC2 > 150 || tempC2 < -60) tempC2 = NAN;
   if (tempC3 > 150 || tempC3 < -60) tempC3 = NAN;
-  // if (tempC4 > 150 || tempC4 < -60) tempC4 = NAN;
+  
+  if (tempC4 > 150 || tempC4 < -60) tempC4 = NAN;
   if (tempC5 > 150 || tempC5 < -60) tempC5 = NAN;
   if (tempC6 > 150 || tempC6 < -60) tempC6 = NAN;
-  if (tempC7 > 150 || tempC7 < -60) tempC7 = NAN;
-  // if (tempC8 > 150 || tempC8 < -60) tempC8 = NAN;
-
-  ADC4 = ADCout4;
-  ADC8 = ADCout8;
-  tempC4 = ADCout4*(11.00/16000.00);
-  tempC8 = ADCout8*(1.0/16000.00);
+  
+  heaterVoltage = ADCout4 * (11.00 / 16000.00);
+  heaterCurrent = ADCout8 * (1.0 / 16000.00);
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void writeSD(HeatingState heatingState) {
-
   FsFile myFile = SD.open(fileName, FILE_WRITE);
+  if (!myFile) {
+    Serial.println("ERROR: Could not open file for writing (writeSD)");
+    digitalWrite(ERROR_LED, HIGH);
+    return;
+  }
 
   String outString(getTimestamp());
   outString += String(", ");
@@ -273,15 +279,13 @@ void writeSD(HeatingState heatingState) {
   outString += String(tempC2, 3) + ", ";
   outString += String(tempC3, 3) + ", ";
 
+  outString += String(tempC4, 3) + ", ";
   outString += String(tempC5, 3) + ", ";
   outString += String(tempC6, 3) + ", ";
-  outString += String(tempC7, 3) + ", ";
 
-  outString += String(tempC4, 3) + ", "; // voltage
-  // outString += String(ADC4) + ", ";
-  outString += String(tempC8, 3) + ", "; // current in mA
-  //outString += String(ADC8) + ", ";
-
+  outString += String(heaterVoltage, 3) + ", ";  // voltage
+  outString += String(heaterCurrent, 3) + ", ";  // current in mA
+  
   switch (heatingState) {
     case HeatingState::PREHEAT:
       {
@@ -305,29 +309,38 @@ void writeSD(HeatingState heatingState) {
   Serial.println(outString);
 }
 
-/*
-
-  */
+// -------------------------------------------------------
+  // ------------------------------------------------------- 
 void writeTextSD(String message) {
 
   FsFile myFile = SD.open(fileName, FILE_WRITE);
+  if (!myFile) {
+    Serial.println("ERROR: Could not open file for writing (writeTextSD)");
+    digitalWrite(ERROR_LED, HIGH);
+    return;
+  }
 
   String outString = String("M- ") + getTimestamp() + "-" + message;
   myFile.println(outString);
   myFile.close();
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void writeHeaderSD() {
   FsFile myFile = SD.open(fileName, FILE_WRITE);
-  
+  if (!myFile) {
+    Serial.println("ERROR: Could not open file for writing (writeHeaderSD)");
+    digitalWrite(ERROR_LED, HIGH);
+    return;
+  }
+
   myFile.print("\nM- *****************************\nM- Starting Event on Device ");
   myFile.println(deviceID.c_str());
 
   String datetime = getTimestamp();
 
-  myFile.printf("M- %s T_MINS=%d PREH_SECS=%d H_SECS=%d POSTH_SECS=%d\n",datetime.c_str(),T_MINS,PREH_SECS,H_SECS,POSTH_SECS);
+  myFile.printf("M- %s T_MINS=%d PREH_SECS=%d H_SECS=%d POSTH_SECS=%d\n", datetime.c_str(), T_MINS, PREH_SECS, H_SECS, POSTH_SECS);
   myFile.printf("M- data fields: date time, NO, NM, NI, FO, FM, FI, Bvolt V, Heat mA\n");
 
   // Report the battery level here. The RP2040 seems to have a lag and is not reporting correct v too soon after boot
@@ -336,8 +349,8 @@ void writeHeaderSD() {
   myFile.close();
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void checkForDumpCommand() {
   if (Serial.available() >= 5) {
     char command[5] = {};
@@ -359,11 +372,15 @@ void checkForDumpCommand() {
   }
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void dumpSdToSerial() {
-
-  FsFile myFile = SD.open(fileName, FILE_READ);
+  FsFile myFile = SD.open(fileName, FILE_WRITE);
+  if (!myFile) {
+    Serial.println("ERROR: Could not open file for writing. (dumpSdToSerial)");
+    digitalWrite(ERROR_LED, HIGH);
+    return;
+  }
 
   Serial.print("\n*********************************\nDump to Serial\nmyFile position() = ");
   Serial.println(myFile.position());
@@ -391,8 +408,8 @@ void dumpSdToSerial() {
   Serial.println(" seconds\n***********************************\n");
 }
 
-/*
-  */
+// -------------------------------------------------------
+  // -------------------------------------------------------
 void heaterOn() {
   digitalWrite(HEATER_PIN, HIGH);
 }
@@ -400,8 +417,9 @@ void heaterOFF() {
   digitalWrite(HEATER_PIN, LOW);
 }
 
+// -------------------------------------------------------
 // Initialize all LED pins
-  // -------------------------------------------------------
+// -------------------------------------------------------
 void initLEDs() {
   pinMode(RED_LED, OUTPUT);
   digitalWrite(RED_LED, LOW);
@@ -422,7 +440,9 @@ void initLEDs() {
   digitalWrite(HEATER_PIN, LOW);
 }
 
+// -------------------------------------------------------
 // Turn all LEDs on/off
+ // -------------------------------------------------------
 void allLEDs(int ONOFF) {
   digitalWrite(RED_LED, ONOFF);
   digitalWrite(YELLOW_LED, ONOFF);
@@ -433,6 +453,7 @@ void allLEDs(int ONOFF) {
   digitalWrite(LED_BUILTIN, ONOFF);
 }
 
+// -------------------------------------------------------
 // Print raw DS3231 register state for diagnostics
 // -------------------------------------------------------
 void printRegisterState() {
@@ -461,3 +482,5 @@ void printRegisterState() {
            (status & 0x01) ? "SET" : "NOT SET");
   Serial.println(buf);
 }
+
+

@@ -1,3 +1,4 @@
+// -------------------------------------------------------
 // Validate ID string - alphanumeric, 1-12 chars
 // -------------------------------------------------------
 bool isValidID(const char* s) {
@@ -9,6 +10,7 @@ bool isValidID(const char* s) {
   return true;
 }
 
+// -------------------------------------------------------
 // Validate DateTime fields are in range
 // -------------------------------------------------------
 bool isValidDateTime(int year, int month, int day,
@@ -22,6 +24,7 @@ bool isValidDateTime(int year, int month, int day,
   return true;
 }
 
+// -------------------------------------------------------
 // Read a line from Serial with timeout (ms)
 // Returns true if a line was received, false on timeout
 // or if provisioning button was pressed to escape
@@ -57,6 +60,7 @@ bool readSerialLine(char* buf, int bufSize, unsigned long timeoutMs) {
   return false;
 }
 
+// -------------------------------------------------------
 // Read a single character response with timeout
 // Returns the char, or 0 on timeout/escape
 // -------------------------------------------------------
@@ -80,6 +84,7 @@ char readSerialChar(unsigned long timeoutMs) {
   return 0;
 }
 
+// -------------------------------------------------------
 // Save ID to EEPROM
 // -------------------------------------------------------
 void saveIDtoEEPROM(const char* id) {
@@ -93,6 +98,7 @@ void saveIDtoEEPROM(const char* id) {
   Serial.println("ID saved to EEPROM.");
 }
 
+// -------------------------------------------------------
 // Load ID from EEPROM
 // Returns true if a valid ID was found
 // -------------------------------------------------------
@@ -123,6 +129,7 @@ bool loadIDfromEEPROM() {
   return true;
 }
 
+// -------------------------------------------------------
 // Provisioning mode
 // Entered via button press interrupt
 // User can also press button again to escape at any time
@@ -152,7 +159,7 @@ void provisioningMode() {
   Serial.printf("  Device ID : %s\n", deviceID.c_str());
   Serial.println();
 
-  const unsigned long INPUT_TIMEOUT = 120000;  // 30 seconds to enter each input
+  const unsigned long INPUT_TIMEOUT = 120000;  // 2 min to enter input
 
   // ---- Step 1: Get date/time and ID from user ----
   char inputBuf[64];
@@ -270,7 +277,7 @@ void provisioningMode() {
     }
   }
 
-exitProvisioning:
+  exitProvisioning:
   // Restore LEDs
   allLEDs(LOW);
   digitalWrite(POWER_LED, HIGH);
@@ -284,15 +291,18 @@ exitProvisioning:
   Serial.println("Returning to normal operation.\n");
 }
 
+// -------------------------------------------------------
 // Check flag and enter provisioning if requested
 // Call this at safe points throughout setup()
 // -------------------------------------------------------
 void checkProvisioning() {
   if (!provisioningRequested) return;
   provisioningRequested = false;  // clear flag before entering
+  heaterOFF();  // safety - ensure heater is off before provisioning
   provisioningMode();
 }
 
+// -------------------------------------------------------
 // ISR - keep it minimal, just set the flag
 // -------------------------------------------------------
 void onProvisionButton() {
