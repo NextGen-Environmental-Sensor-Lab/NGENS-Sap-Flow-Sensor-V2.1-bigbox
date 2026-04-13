@@ -2,6 +2,9 @@
 <small>
 
 **SAPFLOW SENSOR V2.1 - BIGGER BOX, CIRCULAR 10-PIN CONNECTOR, NEW CPU AND PCB, UPDATED CODE**
+
+**[Setup Procedure](./Sapflow%20bigbox%20setup%20procedure.md)**
+
 | |  |  |  |  |  |  |
 | :---- | :---- | ----- | ----- | ----- | ----- | :---- |
 | **Last updated: 1-26-26** | **PRICE BREAK POINT: 25** |  |  |  |  |  |
