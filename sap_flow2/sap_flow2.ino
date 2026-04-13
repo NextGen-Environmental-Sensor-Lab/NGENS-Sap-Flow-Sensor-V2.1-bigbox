@@ -56,10 +56,10 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PROVISION_PIN), onProvisionButton, FALLING);
   Serial.println("Provisioning button interrupt armed on A1.");
 
-  Wire.end();
-  delay(10);
-  Wire.begin();
-  delay(10);
+  // Wire.end();
+  // delay(10);
+  // Wire.begin();
+  // delay(10);
   if (!rtc_ds3231.begin()) {
     Serial.println("Couldn't find RTC!");
     while (1) {
