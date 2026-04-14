@@ -2,21 +2,23 @@
 
 **Before you start get the following ready:**
 
-1. **Arduino IDE** with the Adafruit Feather **RP2040 logger board selecte**d.
+1. **Arduino IDE** with the Adafruit Feather **RP2040 logger board selecte**d. 
 
-2. Recently downloaded Arduino ‘**sap\_flow2.ino’ code from [github](https://github.com/NextGen-Environmental-Sensor-Lab/NGENS-Sap-Flow-Sensor-V2.1-bigbox)** (github.com/NextGen-Environmental-Sensor-Lab/NGENS-Sap-Flow-Sensor-V2.1-bigbox)
+2. Recently downloaded Arduino ‘**sap\_flow2.ino’ code from [github](https://github.com/NextGen-Environmental-Sensor-Lab/NGENS-Sap-Flow-Sensor-V2.1-bigbox)** 
 
-3. Micro **SD card reade**r. “SD card formatter” app.
+3. Open the Arduino IDE and **open the sap\_flow2.ino.** Select the Run the compiler once (check mark upper left icon) to make sure all libraries are in place).
 
-4. **Special ‘switched’ USB-C cable (home made) and the USB-C 90degree adapter.**
+4. Micro **SD card reade**r. “SD card formatter” app.
 
-5. **SFS box** with the **coin battery** in place, microcontroller card and an **SD card i**n the microcontroller and a **battery cable**.
+5. **Special ‘switched’ USB-C cable (home made) and the USB-C 90degree adapter.**
 
-6. A **charged battery pack (12V)** disconnected from board.
+6. **SFS box** with the **coin battery** in place, microcontroller card and an **SD card i**n the microcontroller and a **battery cable**.
 
-7. **SFS probe with a number** on it (means it’s been tested)
+7. A **charged battery pack (12V)** disconnected from board.
 
-8. **Beaker with ice and water mix**
+8. **SFS probe with a number** on it (means it’s been tested)
+
+9. **Beaker with ice and water mix**
 
 **Procedure to set up the board:**
 
@@ -30,32 +32,40 @@
 
 5. **Connect SFS probe,** if not connected already. 
 
-6. Open the Arduino IDE and **open the sap\_flow2.ino.** Select the “Adafruit Feather RP2040. Run the compiler once (check mark upper left icon) to make sure all libraries are in place
+6. Turn the **system on from the USB cable switch**.
 
-7. Turn the **system on from the USB cable switch**.
+7. Select the **port at Tools\>Port\>/dev/cu.usb(Adafruit …**) (on Mac) and then **open the serial monitor** (spyglass icon upper right). You may get some output on the screen.
 
-8. Select the **port at Tools\>Port\>/dev/cu.usb(Adafruit …**) (on Mac) and then **open the serial monitor** (spyglass icon upper right). You may get some output on the screen.
+8. **If you do not see the /dev/cu.usb(Adafruit..) port go to debug at the end**
 
-9. **If you do not see the /dev/cu.usb(Adafruit..) port go to debug at the end**
+9. **Upload code (**right arrow upper left corner). When finished **open the serial monitor**. If you don’t see output, **reset the board** (little black button on microcontroller board next to the USB-C connector). You should get output on the serial monitor that ends on ‘Card failed or not present\!’ and the **Error LED blinking**.
 
-10. **Upload code (**right arrow upper left corner). When finished **open the serial monitor**. If you don’t see output, **reset the board** (little black button on microcontroller board next to the USB-C connector). You should get output on the serial monitor that ends on ‘Card failed or not present\!’ and the **Error LED blinking**.
+10. **Plug the battery power in**
 
-11. Put the 3x **probe needles into the ice water**, **plug the battery power in**, c**lick the SD card in**, and click the **reset button again.** This starts a measurement cycle and you will see the measurements on the screen. While running **turn the USB cable power off**. The process will continue and conclude because it is now on battery power. 
+11. **Click the SD card in,** 
 
-12. It will restart on the hour and on the half-hour. If you want to get a second reading of ice-water press the **black Wake button on the main board and hold it until the green LED flashes**. This will force another measurement cycle.
+12. **Put the 3 probe needles into the ice water**, 
 
-At this point the system is saving the ice-water temperature values in a file called UNKNOWN. It may be of use later to calibrate the thermistors.
+13. **Click the reset button again.** 
 
-13. **Provisioning (enter date, time and board ID).** **Click-out the SD card** and force a cycle with the **Wake button (hold until green LED blinks**). Because the SD card is out it will go to the blinking Error.
+This starts a measurement cycle and you will see the measurements on the screen. The measurement cycle will take about 2 minutes. While it is running **turn the USB cable power off**. The process will continue because it is now on battery power and the output will continue on the Serial monitor screen.
 
-14. To enter provisioning **click the Aux black button on the corner of the main board.** It will flash all the LEDs a few times and you will see output on the Serial monitor indicating PROVISIONING MODE. We have two minutes to do this before it goes back to the error cycle.
+The system is saving the ice-water temperature values in a file called UNKNOWN. It may be of use later to calibrate the thermistors.
 
-15. At the top of the Serial Monitor window **enter the information: YYYY/MM/DD HH:MM:SS DEVICEID. I have been using the format SFS0xx for DEVICEID with xx corresponding to the number on the probe.** 
+When finished it will power off. It will restart on the hour and on the half-hour. If you want to get a second reading of ice-water press the **black Wake button on the main board and hold it until the green LED flashes**. This wil**l force another measurement cycle.**
 
-16. **Synchronizing Tip:** Choose a **MM:SS a bit in the future, 30s** or so, and **enter**. It will ask for a confirmation y or Y. **Type y or Y but don’t enter until the computer clock and the entered time coincide.** This will save the info to chip  memory and exit back to the error cycle. If you want to make sure the data is correct you can re-enter provisioning (Aux). The saved values will print out on the serial monitor. If correct click Aux again and this will exit the process.
+14. **Provisioning (enter date, time and board ID).** When the system is off, **Click-out the SD card** and force a cycle with the **Wake button (hold until green LED blinks**). Because the SD card is out it will go to the blinking Error.
 
-17. **Add label to board** with orange tape with DEVICEID. **Disconnect battery** power cable. **READY**. 
+15. To enter provisioning **click the Aux black button on the corner of the main board.** It will flash all the LEDs a few times and you will see output on the Serial monitor indicating PROVISIONING MODE. We have two minutes to do this before it goes back to the error cycle.
+
+16. At the top of the Serial Monitor window **enter the information: YYYY/MM/DD HH:MM:SS DEVICEID. I have been using the format SFS0xx for DEVICEID with xx corresponding to the number on the probe.** 
+
+17. **Synchronizing Tip:** Choose a **MM:SS a bit in the future, 30s** or so, and **enter**. It will ask for a confirmation ‘y’ or ‘Y’. **Type y or Y but don’t enter until the computer clock and the entered time coincide.** This will save the info to chip  memory and exit back to the error cycle. If you want to make sure the data is correct you can re-enter provisioning (Aux). The saved values will print out on the serial monitor. If correct click Aux again and this will exit the process.
+
+18. **Add label to board** with orange tape with DEVICEID. **Disconnect battery** power cable.
+
+19.  **READY**. 
 
 **DEBUG: Serial port missing** 
 
-If the Serial port is not showing up: **press ‘Boot’** black button, then **click ‘Reboot’** black button, then **release ‘Boot’** black button. This will make a **strange UF2 Board** appear int the **Tools\>Port** on the Arduino IDE that will allow you to upload the code. When upload done, go back to **Tools\>Port** and the normal port name should be there called  /dev/cu.usbmodem1101 (Adafruit Feather RP2040 Adalogger).
+If the Serial port is not showing up: **press ‘Boot’** black button, then **click ‘Reboot’** black button, then **release ‘Boot’** black button. This will make a **strange UF2 Board** appear in the **Tools\>Port** on the Arduino IDE that will allow you to upload the code. When upload is done, go back to **Tools\>Port** and the normal port name should be there (called  /dev/cu.usbmodem1101 (Adafruit Feather RP2040 Adalogger)  or something similar on Mac).
