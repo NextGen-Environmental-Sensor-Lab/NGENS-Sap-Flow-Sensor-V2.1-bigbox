@@ -4,9 +4,9 @@
 
 1. **Arduino IDE** with the Adafruit Feather **RP2040 logger board selecte**d. 
 
-2. Recently downloaded Arduino ‘**sap\_flow2.ino’ code from [github](https://github.com/NextGen-Environmental-Sensor-Lab/NGENS-Sap-Flow-Sensor-V2.1-bigbox)** 
+2. Recently downloaded Arduino ‘**sap\_flow2.ino’ code from [github](https://github.com/NextGen-Environmental-Sensor-Lab/NGENS-Sap-Flow-Sensor-V2.1-bigbox)** open in Arduino IDE. 
 
-3. Open the Arduino IDE and **open the sap\_flow2.ino.** \[Select the Run the compiler once (check mark upper left icon) to make sure all libraries are in place\].
+3. Run the compiler once (check mark upper left icon) to make sure all libraries are in place.
 
 4. Micro **SD card reade**r. “SD card formatter” app.
 
