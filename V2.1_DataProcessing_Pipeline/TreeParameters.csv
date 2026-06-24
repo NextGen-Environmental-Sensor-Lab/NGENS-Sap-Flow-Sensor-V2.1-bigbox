@@ -1,0 +1,3 @@
+﻿sensorID,treeID,species,DBH_cm,BarkDepth_cm,SapwoodDepth_cm,SapwoodArea_cm2,k,x,d_wound,B_o,B_i
+SFS_TEST,1,,30,,,50,0.0025,0.6,1.7023,,
+SFS10,2,,,,,,0.0025,0.6,1.7023,,
