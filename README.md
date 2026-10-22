@@ -3,6 +3,14 @@
 
 **SAPFLOW SENSOR V2.1 - BIGGER BOX, CIRCULAR 10-PIN CONNECTOR, NEW CPU AND PCB, UPDATED CODE**
 
+<img src="images/sfsv2.1_1.png" width="400">
+
+<img src="images/sfsv2.1_2.png" width="400">
+
+<img src="images/sfsv2.1_3.png" width="400">
+
+<img src="KiCad_PCB/NGENS_SFS_V2.1_bigbox_PCB.png" width="400">
+
 **[Setup Procedure](./Sapflow%20bigbox%20setup%20procedure.md)**
 
 | |  |  |  |  |  |  |
@@ -22,12 +30,10 @@
 | header female 16 pos (feather) | PPTC161LFBN-RC | Digikey | 1 | 0.56 | 0.56 | [PPTC161LFBN-RC Sullins Connector Solutions | Headers, Receptacles, Female Sockets | DigiKey](https://www.digikey.com/en/products/detail/sullins-connector-solutions/PPTC161LFBN-RC/810154) |
 | JST-PH 2pin vertical |  | Digikey | 1 | 0.11 | 0.11 | [B2B-PH-K-S JST Sales America Inc. | Headers, Male Pins | DigiKey](https://www.digikey.com/en/products/detail/jst-sales-america-inc/B2B-PH-K-S/926611) |
 | 10 Pos circ Conn Plug Female | BU-10BFFA-LL7001 | Digikey | 1 | 11.44 | 11.44 | [digikey.com BU-10BFFA-LL7001](https://www.digikey.com/en/products/detail/amphenol-ltw/BU-10BFFA-LL7001/7102699?_gl=1*14g4qfv*_up*MQ..*_gs*MQ..&gclid=Cj0KCQiArOvIBhDLARIsAPwJXOaXEUJchHz3iw7wECUi43c3_uW3VToeuUNtMEYhPhTFU_FwFYxniEMaAn4cEALw_wcB&gclsrc=aw.ds&gbraid=0AAAAADrbLlje8BsOBRGSmeFRghD-QYOCs) |
-| Shipping digikey |  | Digikey | 1 | 0.23 | 0.23 |  |
-| 10 Pos Cir Conn Male | BU-10PMMS-LC7001 | Digikey | 0 | 5.30 | 0.00 | [digikey.com BU-10PMMS-LC7001](https://www.digikey.com/en/products/detail/amphenol-ltw/BU-10PMMS-LC7001/7102698?_gl=1*1cn1tnl*_up*MQ..*_gs*MQ..&gclid=Cj0KCQiArOvIBhDLARIsAPwJXOaXEUJchHz3iw7wECUi43c3_uW3VToeuUNtMEYhPhTFU_FwFYxniEMaAn4cEALw_wcB&gclsrc=aw.ds&gbraid=0AAAAADrbLlje8BsOBRGSmeFRghD-QYOCs) |
-| 10 Pos Cir Conn Male | BU-10PMMS-LC7001 | Newark | 0 | 8.91 | 0.00 | [newark.com bu-10pmms-lc7001](https://www.newark.com/amphenol-ltw/bu-10pmms-lc7001/circular-connector-plug-10-position/dp/47W9551) |
-| 10 Pos cir conn combined digikey and newark |  |  | 1 | 7.34 | 7.34 |  |
-| PCBA JLBPCB | pcba 30 units | JLBPCB | 1 | 23.12 | 23.12 |  |
-| Battery Holder | 10x AA battery holder | Newark | 1 | 2.09 | 2.09 | [28-12573 PRO POWER, Battery Holder, Snap Fit, AA X 10 | Newark Electronics](https://www.newark.com/pro-power/28-12573/battery-sizes-accepted-aa/dp/27W3409) |
+| 10 Pos Cir Conn Male | BU-10PMMS-LC7001 | Digikey | 1 | 5.30 | 5.30 | [digikey.com BU-10PMMS-LC7001](https://www.digikey.com/en/products/detail/amphenol-ltw/BU-10PMMS-LC7001/7102698?_gl=1*1cn1tnl*_up*MQ..*_gs*MQ..&gclid=Cj0KCQiArOvIBhDLARIsAPwJXOaXEUJchHz3iw7wECUi43c3_uW3VToeuUNtMEYhPhTFU_FwFYxniEMaAn4cEALw_wcB&gclsrc=aw.ds&gbraid=0AAAAADrbLlje8BsOBRGSmeFRghD-QYOCs) |
+| PCBA JLBPCB | pcba 30 units | JLBPCB | 1 | 23.12 | 23.12 | https://jlcpcb.com/ |
+| Battery Holder | 10x AA battery holder | Newark | 1 | 2.09 | 2.09 | [https://www.newark.com/pro-power/28-12573/battery-sizes-accepted-aa/dp/27W3409](https://www.newark.com/pro-power/28-12573/battery-sizes-accepted-aa/dp/27W3409) |
 | Polycase WH-10-01 | With hole for connector | Polycase | 1 | 24.95 | 24.95 | [https://www.polycase.com/wh-10](https://www.polycase.com/wh-02) |
 | Ni-MH 1.2V 2500mAh AA batt | 500-pack \+ 100-pack, tot 600 | Tenergy | 20 | 1.42 | 28.40 | [https://www.eblofficial.com/products/rechargeable-nimh-aa-battery?variant=40668336455762](https://www.eblofficial.com/products/rechargeable-nimh-aa-battery?variant=40668336455762) |
+| 3-needle tree SFS sensor | each | East30 | 1 | 300 | 300 | [https://www.east30sensors.com/sapflow](https://www.east30sensors.com/sapflow) |
 </small>
